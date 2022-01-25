@@ -1,0 +1,127 @@
+
+Option Explicit
+
+'Created by Bart Wille
+
+'1.  Create Module
+'2.  Copy/paste APIs and constants
+'3.  Create sub procedure
+'4.  Create variables
+'5.  Loop through the Desktop applications
+'6.  Create Handle_to_text function
+'7.  Get the correct application and loop through its children
+
+'-   Loops
+'-   Conditionals
+'-   Variables
+'-   3 API's
+'   o GetWindow
+'   o SendMessageByString
+'   o SendMessage
+'   o GetDesktopWindow
+
+
+Private Const WM_GETTEXTLENGTH = &HE
+Public Const WM_SETTEXT = &HC
+Public Const WM_GETTEXT = &HD
+Public Const BM_CLICK = &HF5&
+Private Const GW_HWNDNEXT = 2
+Private Const GW_CHILD = 5
+
+#If Win64 Then 'depending on 64 or 32 bit windows
+    Private Declare PtrSafe Function GetWindow Lib "user32" ( _
+        ByVal hwnd As Long, _
+        ByVal wCmd As Long) _
+        As Long
+        
+    Private Declare PtrSafe Function SendMessageByString Lib "user32" Alias "SendMessageA" ( _
+        ByVal hwnd As Long, _
+        ByVal wMsg As Long, _
+        ByVal wParam As Long, _
+        ByVal lParam As String) _
+        As Long
+        
+    Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" ( _
+        ByVal hwnd As Long, _
+        ByVal wMsg As Long, _
+        ByVal wParam As Long, _
+        lParam As Any) _
+        As Long
+#Else
+    Private Declare Function GetWindow Lib "user32" ( _
+        ByVal hwnd As Long, _
+        ByVal wCmd As Long) _
+        As Long
+        
+    Private Declare PtrSafe Function SendMessageByString Lib "user32" Alias "SendMessageA" ( _
+        ByVal hwnd As Long, _
+        ByVal wMsg As Long, _
+        ByVal wParam As Long, _
+        ByVal lParam As String) _
+        As Long
+        
+    Declare Function SendMessage Lib "user32" Alias "SendMessageA" ( _
+        ByVal hwnd As Long, _
+        ByVal wMsg As Long, _
+        ByVal wParam As Long, _
+        lParam As Any) _
+        As Long
+#End If
+
+Declare Function GetDesktopWindow Lib "user32" () As Long
+
+Sub SaveAs_PopUp()
+
+Dim lMain As Long
+Dim lChild1 As Long
+Dim lChild2 As Long
+Dim sChild1 As String
+Dim sChild2 As String
+
+lMain = GetDesktopWindow
+lChild1 = GetWindow(lMain, GW_CHILD)
+
+Do Until lChild1 = 0
+    sChild1 = Hande_to_text(lChild1)
+    
+    If sChild1 = "Save As" Then
+        lChild2 = GetWindow(lChild1, GW_CHILD)
+        
+        Do Until lChild2 = 0
+            sChild2 = Hande_to_text(lChild2)
+            
+            If sChild2 = "&Save" Then
+                Call SendMessageByString(lChild2, BM_CLICK, 0, ByVal 0&)
+                End
+            End If
+            
+            lChild2 = GetWindow(lChild2, GW_HWNDNEXT)
+        Loop
+    End If
+    
+    lChild1 = GetWindow(lChild1, GW_HWNDNEXT)
+Loop
+
+End Sub
+Function Hande_to_text(lHandle As Long) As String
+
+Dim l As Long
+Dim s As String
+
+If lHandle = 0 Then
+    Exit Function
+End If
+
+l = SendMessage(lHandle, WM_GETTEXTLENGTH, 0, 0)
+If l = 0 Then
+    Exit Function
+End If
+
+l = l + 1
+s = Space$(l)
+l = SendMessage(lHandle, WM_GETTEXT, l, ByVal s)
+Hande_to_text = Left$(s, l)
+    
+End Function
+
+
